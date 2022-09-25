@@ -18,7 +18,9 @@ const ponerMenu = (context, mensaje) => context.reply(mensaje, Markup
 async function getZonaName(ctx) {
   const userId = ctx.update.message.from.id;
   const responsables = await getSheetValues('RESPONSABLES!B2:C');
-  return responsables.filter((responsable) => responsable[1] === userId.toString())?.[0][0];
+  const responsable = responsables.filter((resp) => resp[1] === userId.toString());
+  // eslint-disable-next-line no-throw-literal
+  if (responsable) { responsable[0][0]; }
 }
 
 const getZona = async (ctx) => {
@@ -38,29 +40,39 @@ const getZonaSinInformacion = async (ctx) => {
 };
 
 const getProximosCierresByZone = async (ctx) => {
-  const zonaInfo = await getZonaAbiertas(ctx);
-  const filteredByValidTimestamp = zonaInfo.filter(isValidTime);
-  const validTimeStamps = filteredByValidTimestamp.map((institucion) => ({ ...institucion, hEstCierre: getValidTimeStamp(institucion.hEstCierre) }));
-  const invalidTimeStamps = zonaInfo.filter((institucion) => !isValidTime(institucion));
-  validTimeStamps.sort((a, b) => (a.hEstCierre < b.hEstCierre ? -1 : a.hEstCierre > b.hEstCierre ? 1 : 0));
-  const responseValid = mapInstitutionToCloseTime(validTimeStamps);
-  const responseInvalid = mapInstitutionInvalidCloseTime(invalidTimeStamps);
+  try {
+    const zonaInfo = await getZonaAbiertas(ctx);
+    const filteredByValidTimestamp = zonaInfo.filter(isValidTime);
+    const validTimeStamps = filteredByValidTimestamp.map((institucion) => ({ ...institucion, hEstCierre: getValidTimeStamp(institucion.hEstCierre) }));
+    const invalidTimeStamps = zonaInfo.filter((institucion) => !isValidTime(institucion));
+    validTimeStamps.sort((a, b) => (a.hEstCierre < b.hEstCierre ? -1 : a.hEstCierre > b.hEstCierre ? 1 : 0));
+    const responseValid = mapInstitutionToCloseTime(validTimeStamps);
+    const responseInvalid = mapInstitutionInvalidCloseTime(invalidTimeStamps);
 
-  if (responseValid) {
-    await ponerMenu(ctx, responseValid);
-  }
-  if (invalidTimeStamps.length) {
-    await ponerMenu(ctx, responseInvalid);
-  }
-  if (!responseValid && !invalidTimeStamps.length) {
-    await ponerMenu(ctx, 'No hay instituciones abiertas');
+    if (responseValid) {
+      await ponerMenu(ctx, responseValid);
+    }
+    if (invalidTimeStamps.length) {
+      await ponerMenu(ctx, responseInvalid);
+    }
+    if (!responseValid && !invalidTimeStamps.length) {
+      await ponerMenu(ctx, 'No hay instituciones abiertas');
+    }
+  } catch (e) {
+    ctx.reply('No tenes acceso al bot. En caso de que requieras acceso, por favor pedile a tu responsable que se comunique con la base');
+    console.error(e);
   }
 };
 
 const getSinInformacionByZone = async (ctx) => {
-  const zonaInfo = await getZonaSinInformacion(ctx);
-  const responseSinInformacion = mapInstitutionsWithoutInfo(zonaInfo);
-  ponerMenu(ctx, responseSinInformacion || 'No hay instituciones sin informacion');
+  try {
+    const zonaInfo = await getZonaSinInformacion(ctx);
+    const responseSinInformacion = mapInstitutionsWithoutInfo(zonaInfo);
+    ponerMenu(ctx, responseSinInformacion || 'No hay instituciones sin informacion');
+  } catch (e) {
+    ctx.reply('No tenes acceso al bot. En caso de que requieras acceso, por favor pedile a tu responsable que se comunique con la base');
+    console.error(e);
+  }
 };
 
 const ponerMenuInicial = (ctx) => ponerMenu(ctx, 'Bienvenido al bot para responsables!');
