@@ -20,7 +20,7 @@ async function getZonaName(ctx) {
   const responsables = await getSheetValues('RESPONSABLES!B2:C');
   const responsable = responsables.filter((resp) => resp[1] === userId.toString());
   // eslint-disable-next-line no-throw-literal
-  if (responsable.length) { responsable[0][0]; }
+  if (responsable.length) { return responsable[0][0]; } return '';
 }
 
 const getZona = async (ctx) => {
